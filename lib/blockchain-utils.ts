@@ -1,6 +1,6 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { contractAddress, abi } from '../utils/utils';
-import { Story, StorySubmission, Vote } from './types';
+import { Story, StorySubmission } from './types';
 
 // ============ CONTRACT INTERACTION HOOKS ============
 
@@ -189,23 +189,23 @@ export function useGetStory(storyId: number | undefined) {
   });
 
   // Transform blockchain data to our Story interface
-  const transformStoryData = (rawData: any): Story | null => {
-    if (!rawData) return null;
+  const transformStoryData = (rawData: unknown): Story | null => {
+    if (!rawData || !Array.isArray(rawData)) return null;
     
     return {
-      id: rawData[0].toString(),
-      title: rawData[2],
-      description: rawData[3],
+      id: String(rawData[0]),
+      title: String(rawData[2]),
+      description: String(rawData[3]),
       creator: {
-        address: rawData[1],
+        address: String(rawData[1]),
         username: undefined, // We'll need to get this from somewhere else
       },
       createdAt: new Date(Number(rawData[8]) * 1000),
-      isComplete: rawData[6],
+      isComplete: Boolean(rawData[6]),
       currentChapter: Number(rawData[5]),
       maxChapters: Number(rawData[4]),
       chapters: [], // We'll need to fetch these separately
-      tags: rawData[9] || [],
+      tags: Array.isArray(rawData[9]) ? rawData[9].map(String) : [],
       totalVotes: Number(rawData[7]),
     };
   };
@@ -277,22 +277,22 @@ export function useGetSubmission(submissionId: number | undefined) {
   });
 
   // Transform blockchain data to our StorySubmission interface
-  const transformSubmissionData = (rawData: any): StorySubmission | null => {
-    if (!rawData) return null;
+  const transformSubmissionData = (rawData: unknown): StorySubmission | null => {
+    if (!rawData || !Array.isArray(rawData)) return null;
     
     return {
-      id: rawData[0].toString(),
-      storyId: rawData[1].toString(),
+      id: String(rawData[0]),
+      storyId: String(rawData[1]),
       chapterNumber: Number(rawData[2]),
-      content: rawData[3],
+      content: String(rawData[3]),
       author: {
-        address: rawData[4],
+        address: String(rawData[4]),
         username: undefined,
       },
       votes: [], // We'll need to track this separately
       totalVotes: Number(rawData[5]),
       createdAt: new Date(Number(rawData[6]) * 1000),
-      isWinner: rawData[7],
+      isWinner: Boolean(rawData[7]),
     };
   };
 

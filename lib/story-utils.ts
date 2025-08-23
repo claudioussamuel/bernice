@@ -1,14 +1,7 @@
-import { Story, StorySubmission, Vote, VotingRound } from './types';
-import { 
-  useGetAllStoryIds, 
-  useGetStory, 
-  useGetSubmission, 
-  useGetChapterSubmissions,
-  bigintArrayToNumbers 
-} from './blockchain-utils';
+import { Story, StorySubmission, Vote } from './types';
 
 // Mock data for development - replace with actual blockchain/database calls
-let stories: Story[] = [
+const stories: Story[] = [
   {
     id: "story_1",
     title: "The Digital Realm Chronicles",
@@ -110,7 +103,7 @@ let stories: Story[] = [
   }
 ];
 
-let submissions: StorySubmission[] = [
+const submissions: StorySubmission[] = [
   {
     id: "submission_1",
     storyId: "story_1",
@@ -146,7 +139,7 @@ let submissions: StorySubmission[] = [
   }
 ];
 
-let votes: Vote[] = [];
+const votes: Vote[] = [];
 
 export class StoryManager {
   static async createStory(

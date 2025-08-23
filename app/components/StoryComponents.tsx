@@ -5,15 +5,9 @@ import { useAccount } from "wagmi";
 import { Story, StorySubmission, StoryFilters } from "../../lib/types";
 import { StoryManager } from "../../lib/story-utils";
 import { 
-  useStoryOperations, 
-  useStoriesFromBlockchain, 
-  useSubmissionsForVoting,
-  BlockchainStoryManager 
+  useStoryOperations
 } from "../../lib/blockchain-story-manager";
 import { 
-  useGetStory, 
-  useGetSubmission, 
-  useHasUserVoted,
   useWaitForTransaction 
 } from "../../lib/blockchain-utils";
 import { Button, Icon } from "./DemoComponents";
@@ -188,7 +182,7 @@ export function StoryBrowser({ onStorySelect, onCreateStory }: StoryBrowserProps
           <span className="text-sm font-medium text-[var(--app-foreground)]">Status:</span>
           <select
             value={filters.status}
-            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as any }))}
+            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as "all" | "active" | "complete" }))}
             className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded px-2 py-1 text-sm text-[var(--app-foreground)]"
           >
             <option value="all">All Stories</option>
@@ -201,7 +195,7 @@ export function StoryBrowser({ onStorySelect, onCreateStory }: StoryBrowserProps
           <span className="text-sm font-medium text-[var(--app-foreground)]">Sort by:</span>
           <select
             value={filters.sortBy}
-            onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as any }))}
+            onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as "newest" | "popular" | "trending" }))}
             className="bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded px-2 py-1 text-sm text-[var(--app-foreground)]"
           >
             <option value="newest">Newest</option>
@@ -248,7 +242,6 @@ export function StoryCreation({ onStoryCreated, onCancel }: StoryCreationProps) 
   const { 
     createStory, 
     isCreatingStory, 
-    createStoryError, 
     createStoryHash 
   } = useStoryOperations();
   
@@ -396,12 +389,12 @@ export function StoryCreation({ onStoryCreated, onCancel }: StoryCreationProps) 
 // Story Reader Component
 interface StoryReaderProps {
   story: Story;
-  onBackToBrowse: () => void;
+  onBackToBrowse?: () => void;
   onWriteChapter: () => void;
   onVoteForSubmissions: () => void;
 }
 
-export function StoryReader({ story, onBackToBrowse, onWriteChapter, onVoteForSubmissions }: StoryReaderProps) {
+export function StoryReader({ story, onWriteChapter, onVoteForSubmissions }: StoryReaderProps) {
   const { address } = useAccount();
   const [storyProgress, setStoryProgress] = useState<{
     currentChapter: number;
@@ -509,7 +502,7 @@ export function StoryReader({ story, onBackToBrowse, onWriteChapter, onVoteForSu
 
       {/* Chapters */}
       <div className="space-y-6">
-        {story.chapters.map((chapter, index) => (
+        {story.chapters.map((chapter) => (
           <div
             key={chapter.id}
             className="bg-[var(--app-card-bg)] rounded-xl p-6 border border-[var(--app-card-border)]"
@@ -614,11 +607,9 @@ export function ChapterWriter({ story, onChapterSubmitted, onCancel }: ChapterWr
   const { 
     submitFirstChapter, 
     isSubmittingFirstChapter,
-    submitFirstChapterError,
     submitFirstChapterHash,
     submitChapterContinuation,
     isSubmittingContinuation,
-    submitContinuationError,
     submitContinuationHash
   } = useStoryOperations();
 
@@ -667,7 +658,7 @@ export function ChapterWriter({ story, onChapterSubmitted, onCancel }: ChapterWr
       
       onChapterSubmitted(tempSubmission);
     }
-  }, [firstChapterReceipt.isConfirmed, continuationReceipt.isConfirmed, transactionHash, story.id, nextChapterNumber, content, address, isFirstChapter, onChapterSubmitted]);
+  }, [firstChapterReceipt.isConfirmed, continuationReceipt.isConfirmed, firstChapterReceipt, continuationReceipt, transactionHash, story.id, nextChapterNumber, content, address, isFirstChapter, onChapterSubmitted]);
 
   const canSubmit = address && content.trim().length >= minLength && content.trim().length <= maxLength;
   const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -681,7 +672,7 @@ export function ChapterWriter({ story, onChapterSubmitted, onCancel }: ChapterWr
             Write Chapter {nextChapterNumber}
           </h1>
           <p className="text-[var(--app-foreground-muted)]">
-            Continue the story "{story.title.startsWith("Untitled") ? `by ${story.creator.username || story.creator.address.slice(0, 6) + "..."}` : story.title}"
+            Continue the story {story.title.startsWith("Untitled") ? `by ${story.creator.username || story.creator.address.slice(0, 6) + "..."}` : story.title}
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -717,7 +708,7 @@ export function ChapterWriter({ story, onChapterSubmitted, onCancel }: ChapterWr
       ) : (
         <div className="bg-[var(--app-accent-light)] rounded-xl p-6">
           <h3 className="text-lg font-semibold text-[var(--app-accent)] mb-3">
-            🌟 You're writing the first chapter!
+            🌟 You&apos;re writing the first chapter!
           </h3>
           <p className="text-[var(--app-accent)] text-sm leading-relaxed">
             This is your blank canvas. Set any scene, create any world, introduce any characters you want. 
@@ -853,7 +844,7 @@ Remember:
           </div>
           <div>
             <h4 className="font-medium mb-1">Be creative!</h4>
-            <p>There's no single "right" direction - surprise the community</p>
+            <p>There&apos;s no single right direction - surprise the community</p>
           </div>
         </div>
       </div>
@@ -915,7 +906,7 @@ export function VotingInterface({ onBackToBrowse }: VotingInterfaceProps) {
     loadPendingSubmissions();
   }, []);
 
-  const { voteForSubmission, isVoting: isVotingHook } = useStoryOperations();
+  const { voteForSubmission } = useStoryOperations();
 
   const handleVote = async (submissionId: string) => {
     if (!address) return;

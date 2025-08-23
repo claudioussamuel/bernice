@@ -22,7 +22,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
 import { Button, Icon } from "./components/DemoComponents";
-import { StoryBrowser, StoryCreation, StoryReader, ChapterWriter, VotingInterface } from "./components/StoryComponents";
+import { StoryBrowser, StoryCreation } from "./components/ModernStoryComponents";
+import { StoryReader, ChapterWriter, VotingInterface } from "./components/StoryComponents";
 import { Story, StorySubmission } from "../lib/types";
 
 export default function App() {
@@ -113,143 +114,160 @@ export default function App() {
   }, [context, frameAdded, handleAddFrame]);
 
   return (
-    <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
-      <div className="w-full max-w-6xl mx-auto px-4 py-3">
-        <header className="flex justify-between items-center mb-6 h-11">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <h1 className="text-xl font-bold text-[var(--app-foreground)]">
-                Bernice
-              </h1>
-              <span className="text-sm text-[var(--app-foreground-muted)]">
-                Pure Creative Freedom
-              </span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-10 floating-element"></div>
+        <div className="absolute top-40 right-20 w-24 h-24 bg-gradient-to-r from-pink-400 to-yellow-400 rounded-full opacity-10 floating-element" style={{animationDelay: '2s'}}></div>
+        <div className="absolute bottom-32 left-1/4 w-40 h-40 bg-gradient-to-r from-green-400 to-blue-400 rounded-full opacity-10 floating-element" style={{animationDelay: '4s'}}></div>
+        <div className="absolute bottom-20 right-1/3 w-28 h-28 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full opacity-10 floating-element" style={{animationDelay: '1s'}}></div>
+      </div>
+
+      <div className="relative w-full max-w-7xl mx-auto px-6 py-8">
+        <header className="flex justify-between items-center mb-12">
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-xl">B</span>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold gradient-text">
+                  Bernice
+                </h1>
+                <p className="text-sm text-neutral-500 font-medium">
+                  Pure Creative Freedom
+                </p>
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
-            <Wallet className="z-10">
-              <ConnectWallet>
-                <Name className="text-inherit" />
-              </ConnectWallet>
-              <WalletDropdown>
-                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                  <Avatar />
-                  <Name />
-                  <Address />
-                  <EthBalance />
-                </Identity>
-                <WalletDropdownDisconnect />
-              </WalletDropdown>
-            </Wallet>
+          <div className="flex items-center space-x-4">
+            <div className="card glass-effect px-4 py-2 rounded-xl">
+              <Wallet className="z-10">
+                <ConnectWallet className="btn btn-primary">
+                  <Name className="text-inherit" />
+                </ConnectWallet>
+                <WalletDropdown className="card">
+                  <Identity className="px-6 pt-4 pb-3" hasCopyAddressOnClick>
+                    <Avatar />
+                    <Name />
+                    <Address />
+                    <EthBalance />
+                  </Identity>
+                  <WalletDropdownDisconnect className="btn btn-ghost w-full m-3" />
+                </WalletDropdown>
+              </Wallet>
+            </div>
             {saveFrameButton}
           </div>
         </header>
 
         {/* Network Warning Banner */}
         {context?.user && !isOnBaseSepolia && (
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+          <div className="card status-info mb-8 p-6 fade-in">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <span className="text-xl">🔄</span>
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-2xl">🔄</span>
+                </div>
                 <div>
-                  <h4 className="font-semibold text-blue-800">Wrong Network</h4>
-                  <p className="text-sm text-blue-700">
+                  <h4 className="text-heading-3 text-blue-800 mb-1">Wrong Network</h4>
+                  <p className="text-body-sm text-blue-700">
                     Switch to Base Sepolia to use Bernice blockchain features
                   </p>
                 </div>
               </div>
-              <Button onClick={handleSwitchNetwork} size="sm">
+              <button onClick={handleSwitchNetwork} className="btn btn-primary">
                 Switch Network
-              </Button>
+              </button>
             </div>
           </div>
         )}
 
         {/* Navigation Tabs - only show on main views */}
         {(activeView === "browse" || activeView === "vote") && (
-          <div className="flex items-center space-x-1 mb-6 p-1 bg-[var(--app-card-bg)] rounded-lg border border-[var(--app-card-border)] w-fit">
+          <div className="flex items-center space-x-2 mb-8 p-2 card glass-effect w-fit fade-in">
             <button
               onClick={() => setActiveView("browse")}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 ${
                 activeView === "browse"
-                  ? "bg-[var(--app-accent)] text-[var(--app-background)]"
-                  : "text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)]"
+                  ? "btn btn-primary shadow-lg"
+                  : "text-neutral-600 hover:text-neutral-800 hover:bg-white/50"
               }`}
             >
-              Stories
+              📚 Stories
             </button>
             <button
               onClick={() => setActiveView("vote")}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 ${
                 activeView === "vote"
-                  ? "bg-[var(--app-accent)] text-[var(--app-background)]"
-                  : "text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)]"
+                  ? "btn btn-primary shadow-lg"
+                  : "text-neutral-600 hover:text-neutral-800 hover:bg-white/50"
               }`}
             >
-              Vote
+              🗳️ Vote
             </button>
           </div>
         )}
 
         {/* Back button for other views */}
         {activeView !== "browse" && activeView !== "vote" && (
-          <div className="mb-6">
-            <Button
-              variant="ghost"
-              size="sm"
+          <div className="mb-8">
+            <button
               onClick={handleBackToBrowse}
-              icon={<Icon name="arrow-right" size="sm" className="rotate-180" />}
+              className="btn btn-ghost flex items-center space-x-2 fade-in"
             >
-              Back
-            </Button>
+              <span className="text-lg">←</span>
+              <span>Back to Stories</span>
+            </button>
           </div>
         )}
 
-        <main className="flex-1">
-          {activeView === "browse" && (
-            <StoryBrowser
-              onStorySelect={handleStorySelect}
-              onCreateStory={() => setActiveView("create")}
-            />
-          )}
-          {activeView === "create" && (
-            <StoryCreation
-              onStoryCreated={handleStoryCreated}
-              onCancel={handleBackToBrowse}
-            />
-          )}
-          {activeView === "read" && selectedStory && (
-            <StoryReader
-              story={selectedStory}
-              onBackToBrowse={handleBackToBrowse}
-              onWriteChapter={() => setActiveView("write")}
-              onVoteForSubmissions={() => setActiveView("vote")}
-            />
-          )}
-          {activeView === "write" && selectedStory && (
-            <ChapterWriter
-              story={selectedStory}
-              onChapterSubmitted={handleChapterSubmitted}
-              onCancel={() => setActiveView("read")}
-            />
-          )}
-          {activeView === "vote" && (
-            <VotingInterface
-              onBackToBrowse={handleBackToBrowse}
-            />
-          )}
+        <main className="flex-1 space-y-8">
+          <div className="fade-in">
+            {activeView === "browse" && (
+              <StoryBrowser
+                onStorySelect={handleStorySelect}
+                onCreateStory={() => setActiveView("create")}
+              />
+            )}
+            {activeView === "create" && (
+              <StoryCreation
+                onStoryCreated={handleStoryCreated}
+                onCancel={handleBackToBrowse}
+              />
+            )}
+            {activeView === "read" && selectedStory && (
+              <StoryReader
+                story={selectedStory}
+                onBackToBrowse={handleBackToBrowse}
+                onWriteChapter={() => setActiveView("write")}
+                onVoteForSubmissions={() => setActiveView("vote")}
+              />
+            )}
+            {activeView === "write" && selectedStory && (
+              <ChapterWriter
+                story={selectedStory}
+                onChapterSubmitted={handleChapterSubmitted}
+                onCancel={() => setActiveView("read")}
+              />
+            )}
+            {activeView === "vote" && (
+              <VotingInterface
+                onBackToBrowse={handleBackToBrowse}
+              />
+            )}
+          </div>
         </main>
 
-        <footer className="mt-6 pt-4 flex justify-center border-t border-[var(--app-card-border)]">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-[var(--ock-text-foreground-muted)] text-xs"
+        <footer className="mt-16 pt-8 flex justify-center border-t border-neutral-200">
+          <button
             onClick={() => openUrl("https://base.org/builders/minikit")}
+            className="btn btn-ghost text-neutral-500 hover:text-neutral-700 text-sm"
           >
-            Built on Base with MiniKit
-          </Button>
+            <span>Built on Base with MiniKit</span>
+            <span className="text-lg ml-2">↗</span>
+          </button>
         </footer>
       </div>
     </div>

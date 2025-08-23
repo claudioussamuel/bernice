@@ -91,11 +91,29 @@ export function BlockchainDemo() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 p-6">
-      <div className="bg-[var(--app-card-bg)] rounded-xl p-6 border border-[var(--app-card-border)]">
-        <h2 className="text-2xl font-bold text-[var(--app-foreground)] mb-4">
-          Blockchain Integration Demo
-        </h2>
+    <div className="max-w-5xl mx-auto space-y-8 fade-in">
+      {/* Hero Section */}
+      <div className="text-center space-y-4 py-12">
+        <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl floating-element">
+          <span className="text-white text-4xl">⛓️</span>
+        </div>
+        <h1 className="text-display-2 gradient-text">
+          Blockchain Integration
+        </h1>
+        <p className="text-body-lg text-neutral-600 max-w-2xl mx-auto">
+          Experience the power of decentralized storytelling on Base Sepolia. Test smart contract interactions and explore blockchain features.
+        </p>
+      </div>
+
+      <div className="card p-10 space-y-10">
+        <div className="text-center">
+          <h2 className="text-heading-2 text-neutral-800 mb-2">
+            Smart Contract Demo
+          </h2>
+          <p className="text-body text-neutral-600">
+            Interact with deployed smart contracts and see blockchain magic in action
+          </p>
+        </div>
         
         {!address ? (
           <div className="text-center py-8">
@@ -112,7 +130,7 @@ export function BlockchainDemo() {
               Wrong Network
             </h3>
             <p className="text-blue-700 mb-4">
-              You're currently on <strong>{chainId === 1 ? 'Ethereum Mainnet' : chainId === 8453 ? 'Base Mainnet' : `Chain ${chainId}`}</strong>. 
+              You&apos;re currently on <strong>{chainId === 1 ? 'Ethereum Mainnet' : chainId === 8453 ? 'Base Mainnet' : `Chain ${chainId}`}</strong>. 
               Switch to Base Sepolia to test the app.
             </p>
             <Button onClick={handleSwitchNetwork} className="mb-4">
@@ -289,10 +307,10 @@ export function BlockchainDemo() {
               <h4 className="font-semibold text-blue-800 mb-2">How to Use:</h4>
               <ol className="text-sm text-blue-700 space-y-1">
                 <li>1. Connect your wallet (already done ✓)</li>
-                <li>2. Click "Create Test Story" to create a story on the blockchain</li>
+                <li>2. Click Create Test Story to create a story on the blockchain</li>
                 <li>3. Wait for the transaction to confirm</li>
                 <li>4. Select the newly created story from the dropdown</li>
-                <li>5. Click "Submit First Chapter" to add content</li>
+                <li>5. Click Submit First Chapter to add content</li>
                 <li>6. Check the story details to see the updated information</li>
               </ol>
             </div>

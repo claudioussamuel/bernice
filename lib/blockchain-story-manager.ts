@@ -1,8 +1,6 @@
 import { Story, StorySubmission, Vote } from './types';
 import { 
   useGetAllStoryIds, 
-  useGetStory, 
-  useGetSubmission, 
   useGetChapterSubmissions,
   useCreateStory,
   useSubmitFirstChapter,
@@ -36,7 +34,7 @@ export class BlockchainStoryManager {
   /**
    * Get a specific story by ID
    */
-  static async getStory(storyId: string): Promise<Story | null> {
+  static async getStory(): Promise<Story | null> {
     try {
       // This would be handled by the useGetStory hook in components
       return null;
@@ -123,10 +121,7 @@ export class BlockchainStoryManager {
   /**
    * Get submissions for a chapter (handled by blockchain hook)
    */
-  static async getSubmissionsForChapter(
-    storyId: string,
-    chapterNumber: number
-  ): Promise<StorySubmission[]> {
+  static async getSubmissionsForChapter(): Promise<StorySubmission[]> {
     // This is now handled by the useGetChapterSubmissions hook
     return [];
   }

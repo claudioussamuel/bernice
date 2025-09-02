@@ -31,7 +31,7 @@ import {
   ChronicleCreateStory
 } from "./components/ChronicleComponents";
 import { Story, StorySubmission } from "../lib/types";
-import sdk from "@farcaster/frame-sdk";
+import { sdk } from '@farcaster/miniapp-sdk'
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
@@ -40,7 +40,7 @@ export default function App() {
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
-  sdk.actions.ready()
+  
   // Network management
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
@@ -54,6 +54,19 @@ export default function App() {
       setFrameReady();
     }
   }, [setFrameReady, isFrameReady]);
+
+  // Call ready after the app is fully loaded and ready to display
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        await sdk.actions.ready();
+      } catch (error) {
+        console.error('Failed to initialize MiniApp SDK:', error);
+      }
+    };
+    
+    initializeApp();
+  }, []);
 
   const handleAddFrame = useCallback(async () => {
     const frameAdded = await addFrame();

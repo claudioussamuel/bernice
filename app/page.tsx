@@ -22,16 +22,25 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useChainId, useSwitchChain } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
 import { Button, Icon } from "./components/DemoComponents";
-import { StoryBrowser, StoryCreation } from "./components/ModernStoryComponents";
 import { StoryReader, ChapterWriter, VotingInterface } from "./components/StoryComponents";
+import { 
+  ChronicleButton, 
+  ChronicleInput, 
+  ChronicleAvatar, 
+  ChronicleGameCard, 
+  ChronicleCreateStory
+} from "./components/ChronicleComponents";
 import { Story, StorySubmission } from "../lib/types";
+import sdk from "@farcaster/frame-sdk";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
   const [activeView, setActiveView] = useState<"browse" | "create" | "read" | "write" | "vote">("browse");
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
-  
+  const [joinCode, setJoinCode] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
+  sdk.actions.ready()
   // Network management
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
@@ -51,10 +60,7 @@ export default function App() {
     setFrameAdded(Boolean(frameAdded));
   }, [addFrame]);
 
-  const handleStorySelect = useCallback((story: Story) => {
-    setSelectedStory(story);
-    setActiveView("read");
-  }, []);
+
 
   const handleStoryCreated = useCallback((story: Story) => {
     setSelectedStory(story);
@@ -113,163 +119,300 @@ export default function App() {
     return null;
   }, [context, frameAdded, handleAddFrame]);
 
+  const handleJoinGame = async () => {
+    if (!joinCode.trim()) return;
+    setIsJoining(true);
+    // Simulate joining game - Chronicle shows loading dialog
+    setTimeout(() => {
+      setIsJoining(false);
+      // In Chronicle, successful join navigates to game, error shows snackbar
+      alert(`Joining game with code: ${joinCode}`);
+      setJoinCode("");
+    }, 1000);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Floating Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-10 floating-element"></div>
-        <div className="absolute top-40 right-20 w-24 h-24 bg-gradient-to-r from-pink-400 to-yellow-400 rounded-full opacity-10 floating-element" style={{animationDelay: '2s'}}></div>
-        <div className="absolute bottom-32 left-1/4 w-40 h-40 bg-gradient-to-r from-green-400 to-blue-400 rounded-full opacity-10 floating-element" style={{animationDelay: '4s'}}></div>
-        <div className="absolute bottom-20 right-1/3 w-28 h-28 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full opacity-10 floating-element" style={{animationDelay: '1s'}}></div>
-      </div>
-
-      <div className="relative w-full max-w-7xl mx-auto px-6 py-8">
-        <header className="flex justify-between items-center mb-12">
-          <div className="flex items-center space-x-6">
+    <div className="min-h-screen bg-[var(--app-background)]">
+      {/* Chronicle-style App Bar */}
+      <div className="bg-[var(--app-surface)] shadow-sm">
+        <div className="max-w-4xl mx-auto px-5 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left side - User info */}
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-xl">B</span>
-              </div>
+              <ChronicleAvatar
+                src=""
+                alt="User"
+                size="lg"
+                fallback="U"
+              />
               <div>
-                <h1 className="text-3xl font-bold gradient-text">
-                  Bernice
-                </h1>
-                <p className="text-sm text-neutral-500 font-medium">
-                  Pure Creative Freedom
-                </p>
+                <Wallet className="z-10">
+                  <ConnectWallet>
+                    <span className="text-xl font-semibold text-[var(--app-foreground)]">
+                      <Name />
+                    </span>
+                  </ConnectWallet>
+                  <WalletDropdown className="bg-[var(--app-surface)] rounded-2xl shadow-xl border border-[var(--app-card-border)]">
+                    <Identity className="px-6 pt-4 pb-3" hasCopyAddressOnClick>
+                      <Avatar />
+                      <Name />
+                      <Address />
+                      <EthBalance />
+                    </Identity>
+                                      <WalletDropdownDisconnect className="mx-3 mb-3" />
+                  </WalletDropdown>
+                </Wallet>
               </div>
             </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="card glass-effect px-4 py-2 rounded-xl">
-              <Wallet className="z-10">
-                <ConnectWallet className="btn btn-primary">
-                  <Name className="text-inherit" />
-                </ConnectWallet>
-                <WalletDropdown className="card">
-                  <Identity className="px-6 pt-4 pb-3" hasCopyAddressOnClick>
-                    <Avatar />
-                    <Name />
-                    <Address />
-                    <EthBalance />
-                  </Identity>
-                  <WalletDropdownDisconnect className="btn btn-ghost w-full m-3" />
-                </WalletDropdown>
-              </Wallet>
-            </div>
-            {saveFrameButton}
-          </div>
-        </header>
 
-        {/* Network Warning Banner */}
-        {context?.user && !isOnBaseSepolia && (
-          <div className="card status-info mb-8 p-6 fade-in">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-2xl">🔄</span>
-                </div>
-                <div>
-                  <h4 className="text-heading-3 text-blue-800 mb-1">Wrong Network</h4>
-                  <p className="text-body-sm text-blue-700">
-                    Switch to Base Sepolia to use Bernice blockchain features
-                  </p>
-                </div>
-              </div>
-              <button onClick={handleSwitchNetwork} className="btn btn-primary">
-                Switch Network
+            {/* Right side - Logout */}
+            <div className="flex items-center space-x-3">
+              {saveFrameButton}
+              <button
+                onClick={() => {
+                  if (confirm('Are you sure you want to logout?')) {
+                    // Handle logout
+                  }
+                }}
+                className="p-2 text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
               </button>
             </div>
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Navigation Tabs - only show on main views */}
-        {(activeView === "browse" || activeView === "vote") && (
-          <div className="flex items-center space-x-2 mb-8 p-2 card glass-effect w-fit fade-in">
-            <button
-              onClick={() => setActiveView("browse")}
-              className={`px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 ${
-                activeView === "browse"
-                  ? "btn btn-primary shadow-lg"
-                  : "text-neutral-600 hover:text-neutral-800 hover:bg-white/50"
-              }`}
-            >
-              📚 Stories
-            </button>
-            <button
-              onClick={() => setActiveView("vote")}
-              className={`px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 ${
-                activeView === "vote"
-                  ? "btn btn-primary shadow-lg"
-                  : "text-neutral-600 hover:text-neutral-800 hover:bg-white/50"
-              }`}
-            >
-              🗳️ Vote
-            </button>
+      {/* Main content */}
+      <div className="max-w-4xl mx-auto px-5 py-8">
+        {/* Network Warning Banner */}
+        {context?.user && !isOnBaseSepolia && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-lg">🔄</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-blue-800">Wrong Network</h4>
+                  <p className="text-sm text-blue-700">Switch to Base Sepolia</p>
+                </div>
+              </div>
+              <ChronicleButton onClick={handleSwitchNetwork} variant="primary" size="sm">
+                Switch
+              </ChronicleButton>
+            </div>
           </div>
         )}
 
         {/* Back button for other views */}
-        {activeView !== "browse" && activeView !== "vote" && (
-          <div className="mb-8">
+        {activeView !== "browse" && (
+          <div className="mb-6">
             <button
               onClick={handleBackToBrowse}
-              className="btn btn-ghost flex items-center space-x-2 fade-in"
+              className="flex items-center space-x-2 text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors"
             >
-              <span className="text-lg">←</span>
-              <span>Back to Stories</span>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span>Back</span>
             </button>
           </div>
         )}
 
-        <main className="flex-1 space-y-8">
-          <div className="fade-in">
-            {activeView === "browse" && (
-              <StoryBrowser
-                onStorySelect={handleStorySelect}
-                onCreateStory={() => setActiveView("create")}
-              />
-            )}
-            {activeView === "create" && (
-              <StoryCreation
-                onStoryCreated={handleStoryCreated}
-                onCancel={handleBackToBrowse}
-              />
-            )}
-            {activeView === "read" && selectedStory && (
-              <StoryReader
-                story={selectedStory}
-                onBackToBrowse={handleBackToBrowse}
-                onWriteChapter={() => setActiveView("write")}
-                onVoteForSubmissions={() => setActiveView("vote")}
-              />
-            )}
-            {activeView === "write" && selectedStory && (
-              <ChapterWriter
-                story={selectedStory}
-                onChapterSubmitted={handleChapterSubmitted}
-                onCancel={() => setActiveView("read")}
-              />
-            )}
-            {activeView === "vote" && (
-              <VotingInterface
-                onBackToBrowse={handleBackToBrowse}
-              />
-            )}
-          </div>
-        </main>
+        {activeView === "browse" && (
+          <div className="space-y-8">
+            {/* Join Section - Exact Chronicle Layout */}
+            <div className="space-y-4">
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-[var(--app-foreground)] text-center">
+                  Join via code
+                </h2>
+                <ChronicleInput
+                  placeholder="Enter game code"
+                  value={joinCode}
+                  onChange={setJoinCode}
+                  actionIcon={
+                    <button
+                      onClick={handleJoinGame}
+                      disabled={!joinCode.trim() || isJoining}
+                      className="p-1 text-[var(--app-foreground-muted)] hover:text-[var(--app-primary)] transition-colors disabled:opacity-50"
+                    >
+                      <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </button>
+                  }
+                />
+                <p className="text-xl font-semibold text-[var(--app-foreground)] text-center">
+                  or
+                </p>
+                <ChronicleButton
+                  onClick={() => setActiveView("create")}
+                  variant="secondary"
+                  fullWidth
+                >
+                  Create new game
+                </ChronicleButton>
+              </div>
+            </div>
 
-        <footer className="mt-16 pt-8 flex justify-center border-t border-neutral-200">
-          <button
+            {/* Active Games - Exact Chronicle Layout */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-[var(--app-foreground)]">
+                Active games
+              </h2>
+              <div className="space-y-3">
+                <ChronicleGameCard
+                  title="The Mystery of the Lost Kingdom"
+                  description="A thrilling adventure through ancient lands filled with mystery and wonder..."
+                  participants={[
+                    { id: "1", name: "Alice", avatar: "" },
+                    { id: "2", name: "Bob", avatar: "" },
+                    { id: "3", name: "Charlie", avatar: "" },
+                  ]}
+                  status="Writing"
+                  round={2}
+                  maxRounds={5}
+                  onClick={() => {
+                                            setSelectedStory({
+                          id: "1",
+                          title: "The Mystery of the Lost Kingdom",
+                          description: "A thrilling adventure through ancient lands filled with mystery and wonder...",
+                          chapters: [],
+                          currentChapter: 2,
+                          maxChapters: 5,
+                          isComplete: false,
+                          createdAt: new Date(),
+                          creator: { address: "0x123", username: "Alice" },
+                          tags: [],
+                          totalVotes: 0
+                        });
+                    setActiveView("read");
+                  }}
+                />
+                <ChronicleGameCard
+                  title="Space Odyssey 2024"
+                  description="Journey through the cosmos in this sci-fi collaborative story..."
+                  participants={[
+                    { id: "4", name: "Dave", avatar: "" },
+                    { id: "5", name: "Eve", avatar: "" },
+                  ]}
+                  status="Voting"
+                  round={1}
+                  maxRounds={3}
+                  onClick={() => {
+                                            setSelectedStory({
+                          id: "2",
+                          title: "Space Odyssey 2024",
+                          description: "Journey through the cosmos in this sci-fi collaborative story...",
+                          chapters: [],
+                          currentChapter: 1,
+                          maxChapters: 3,
+                          isComplete: false,
+                          createdAt: new Date(),
+                          creator: { address: "0x456", username: "Dave" },
+                          tags: [],
+                          totalVotes: 0
+                        });
+                    setActiveView("read");
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Completed Games - Exact Chronicle Layout */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-[var(--app-foreground)]">
+                Completed games
+              </h2>
+              <div className="space-y-3">
+                <ChronicleGameCard
+                  title="The Dragon's Tale"
+                  description="An epic fantasy story that captivated readers with its magical world..."
+                  participants={[
+                    { id: "6", name: "Frank", avatar: "" },
+                    { id: "7", name: "Grace", avatar: "" },
+                    { id: "8", name: "Henry", avatar: "" },
+                    { id: "9", name: "Ivy", avatar: "" },
+                  ]}
+                  status="Completed"
+                  onClick={() => {
+                                            setSelectedStory({
+                          id: "3",
+                          title: "The Dragon's Tale",
+                          description: "An epic fantasy story that captivated readers with its magical world...",
+                          chapters: [],
+                          currentChapter: 5,
+                          maxChapters: 5,
+                          isComplete: true,
+                          createdAt: new Date(),
+                          creator: { address: "0x789", username: "Frank" },
+                          tags: [],
+                          totalVotes: 0
+                        });
+                    setActiveView("read");
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {activeView === "create" && (
+          <ChronicleCreateStory
+            onStoryCreated={handleStoryCreated}
+            onCancel={handleBackToBrowse}
+          />
+        )}
+        {activeView === "read" && selectedStory && (
+          <StoryReader
+            story={selectedStory}
+            onBackToBrowse={handleBackToBrowse}
+            onWriteChapter={() => setActiveView("write")}
+            onVoteForSubmissions={() => setActiveView("vote")}
+          />
+        )}
+        
+        {activeView === "write" && selectedStory && (
+          <ChapterWriter
+            story={selectedStory}
+            onChapterSubmitted={handleChapterSubmitted}
+            onCancel={() => setActiveView("read")}
+          />
+        )}
+        
+        {activeView === "vote" && (
+          <VotingInterface
+            onBackToBrowse={handleBackToBrowse}
+          />
+        )}
+
+        {/* Footer */}
+        <div className="mt-16 pt-8 flex justify-center border-t border-[var(--app-card-border)]">
+          <ChronicleButton
             onClick={() => openUrl("https://base.org/builders/minikit")}
-            className="btn btn-ghost text-neutral-500 hover:text-neutral-700 text-sm"
+            variant="ghost"
+            size="sm"
+            icon={<span className="text-lg">↗</span>}
           >
-            <span>Built on Base with MiniKit</span>
-            <span className="text-lg ml-2">↗</span>
-          </button>
-        </footer>
+            Built on Base with MiniKit
+          </ChronicleButton>
+        </div>
       </div>
+
+      {/* Loading state handled inline */}
+      {isJoining && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[var(--app-surface)] rounded-xl p-5 shadow-xl">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-8 h-8 animate-spin rounded-full border-2 border-[var(--app-primary)] border-t-transparent" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

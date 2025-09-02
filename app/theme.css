@@ -5,32 +5,49 @@
 @tailwind utilities;
 
 :root {
-  --app-background: #ffffff;
-  --app-foreground: #111111;
+  /* Chronicle-inspired color scheme */
+  --app-background: #F5F5F5;
+  --app-foreground: #1E1E3E;
   --app-foreground-muted: #58585c;
-  --app-accent: #0052ff;
-  --app-accent-hover: #0047e1;
-  --app-accent-active: #003db8;
-  --app-accent-light: #e6edff;
+  --app-primary: #FF763C;
+  --app-primary-hover: #E6652A;
+  --app-primary-active: #CC5A24;
+  --app-secondary: #00FA9A;
+  --app-secondary-hover: #00E089;
+  --app-secondary-active: #00C778;
+  --app-accent: #FF763C;
+  --app-accent-hover: #E6652A;
+  --app-accent-active: #CC5A24;
+  --app-accent-light: #FFF2ED;
+  --app-surface: #FFFFFF;
+  --app-error: #FF4B4B;
   --app-gray: #f5f5f5;
   --app-gray-dark: #e0e0e0;
-  --app-card-bg: rgba(255, 255, 255, 0.4);
-  --app-card-border: rgba(0, 0, 0, 0.1);
+  --app-card-bg: rgba(255, 255, 255, 0.9);
+  --app-card-border: rgba(30, 30, 62, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --app-background: #111111;
+    --app-background: #1E1E3E;
     --app-foreground: #ffffff;
     --app-foreground-muted: #c8c8d1;
-    --app-accent: #0052ff;
-    --app-accent-hover: #0047e1;
-    --app-accent-active: #003db8;
-    --app-accent-light: #1e293b;
-    --app-gray: #1e1e1e;
-    --app-gray-dark: #2e2e2e;
-    --app-card-bg: rgba(17, 17, 17, 0.4);
-    --app-card-border: rgba(115, 115, 115, 0.5);
+    --app-primary: #FF763C;
+    --app-primary-hover: #E6652A;
+    --app-primary-active: #CC5A24;
+    --app-secondary: #00FA9A;
+    --app-secondary-hover: #00E089;
+    --app-secondary-active: #00C778;
+    --app-accent: #FF763C;
+    --app-accent-hover: #E6652A;
+    --app-accent-active: #CC5A24;
+    --app-accent-light: #2A2A4E;
+    --app-surface: #2A2A4E;
+    --app-error: #FF4B4B;
+    --app-gray: #2e2e2e;
+    --app-gray-dark: #3e3e3e;
+    --app-card-bg: rgba(42, 42, 78, 0.9);
+    --app-card-border: rgba(255, 255, 255, 0.1);
   }
 }
 
@@ -134,4 +151,52 @@ body {
   100% {
     opacity: 0;
   }
+}
+
+/* Chronicle-inspired animations */
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px); 
+  }
+  50% { 
+    transform: translateY(-20px); 
+  }
+}
+
+.floating-element {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+/* Additional Chronicle-style utilities */
+.glass-effect {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }

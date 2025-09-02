@@ -12,16 +12,16 @@ export function useCreateStory() {
   
   const createStory = async (
     title: string,
-    description: string,
-    maxChapters: number,
-    tags: string[] = []
+    totalChapters: number,
+    votingPeriodSeconds: number,
+    chapterOneContent: string
   ) => {
     try {
       await writeContract({
         address: contractAddress as `0x${string}`,
         abi,
         functionName: 'createStory',
-        args: [title, description, BigInt(maxChapters), tags],
+        args: [title, BigInt(totalChapters), BigInt(votingPeriodSeconds), chapterOneContent],
       });
       return hash;
     } catch (error) {
@@ -39,57 +39,28 @@ export function useCreateStory() {
 }
 
 /**
- * Hook to submit the first chapter of a story
- */
-export function useSubmitFirstChapter() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
-  
-  const submitFirstChapter = async (storyId: number, content: string) => {
-    try {
-      await writeContract({
-        address: contractAddress as `0x${string}`,
-        abi,
-        functionName: 'submitFirstChapter',
-        args: [BigInt(storyId), content],
-      });
-      return hash;
-    } catch (error) {
-      console.error('Error submitting first chapter:', error);
-      throw error;
-    }
-  };
-
-  return {
-    submitFirstChapter,
-    hash,
-    isPending,
-    error
-  };
-}
-
-/**
  * Hook to submit a chapter continuation
  */
-export function useSubmitChapterContinuation() {
+export function useSubmitContinuation() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   
-  const submitChapterContinuation = async (storyId: number, content: string) => {
+  const submitContinuation = async (storyId: number, content: string) => {
     try {
       await writeContract({
         address: contractAddress as `0x${string}`,
         abi,
-        functionName: 'submitChapterContinuation',
+        functionName: 'submitContinuation',
         args: [BigInt(storyId), content],
       });
       return hash;
     } catch (error) {
-      console.error('Error submitting chapter continuation:', error);
+      console.error('Error submitting continuation:', error);
       throw error;
     }
   };
 
   return {
-    submitChapterContinuation,
+    submitContinuation,
     hash,
     isPending,
     error
@@ -99,26 +70,26 @@ export function useSubmitChapterContinuation() {
 /**
  * Hook to vote for a submission
  */
-export function useVoteForSubmission() {
+export function useVote() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   
-  const voteForSubmission = async (submissionId: number) => {
+  const vote = async (storyId: number, submissionIndex: number) => {
     try {
       await writeContract({
         address: contractAddress as `0x${string}`,
         abi,
-        functionName: 'voteForSubmission',
-        args: [BigInt(submissionId)],
+        functionName: 'vote',
+        args: [BigInt(storyId), BigInt(submissionIndex)],
       });
       return hash;
     } catch (error) {
-      console.error('Error voting for submission:', error);
+      console.error('Error voting:', error);
       throw error;
     }
   };
 
   return {
-    voteForSubmission,
+    vote,
     hash,
     isPending,
     error
@@ -126,28 +97,57 @@ export function useVoteForSubmission() {
 }
 
 /**
- * Hook to finalize voting for a chapter
+ * Hook to finalize the current chapter
  */
-export function useFinalizeVoting() {
+export function useFinalizeCurrentChapter() {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   
-  const finalizeVoting = async (storyId: number, chapterNumber: number) => {
+  const finalizeCurrentChapter = async (storyId: number) => {
     try {
       await writeContract({
         address: contractAddress as `0x${string}`,
         abi,
-        functionName: 'finalizeVoting',
-        args: [BigInt(storyId), BigInt(chapterNumber)],
+        functionName: 'finalizeCurrentChapter',
+        args: [BigInt(storyId)],
       });
       return hash;
     } catch (error) {
-      console.error('Error finalizing voting:', error);
+      console.error('Error finalizing current chapter:', error);
       throw error;
     }
   };
 
   return {
-    finalizeVoting,
+    finalizeCurrentChapter,
+    hash,
+    isPending,
+    error
+  };
+}
+
+/**
+ * Hook to extend voting period
+ */
+export function useExtendVoting() {
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  
+  const extendVoting = async (storyId: number, extraSeconds: number) => {
+    try {
+      await writeContract({
+        address: contractAddress as `0x${string}`,
+        abi,
+        functionName: 'extendVoting',
+        args: [BigInt(storyId), BigInt(extraSeconds)],
+      });
+      return hash;
+    } catch (error) {
+      console.error('Error extending voting:', error);
+      throw error;
+    }
+  };
+
+  return {
+    extendVoting,
     hash,
     isPending,
     error
@@ -157,17 +157,17 @@ export function useFinalizeVoting() {
 // ============ READ HOOKS ============
 
 /**
- * Hook to get all story IDs
+ * Hook to get total story count
  */
-export function useGetAllStoryIds() {
+export function useGetStoryCount() {
   const { data, isLoading, error, refetch } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi,
-    functionName: 'getAllStoryIds',
+    functionName: 's_storyCount',
   });
 
   return {
-    storyIds: data as bigint[] | undefined,
+    storyCount: data ? Number(data) : undefined,
     isLoading,
     error,
     refetch
@@ -193,20 +193,20 @@ export function useGetStory(storyId: number | undefined) {
     if (!rawData || !Array.isArray(rawData)) return null;
     
     return {
-      id: String(rawData[0]),
-      title: String(rawData[2]),
-      description: String(rawData[3]),
+      id: String(storyId),
+      title: String(rawData[1]), // title is index 1
       creator: {
-        address: String(rawData[1]),
-        username: undefined, // We'll need to get this from somewhere else
+        address: String(rawData[0]), // creator is index 0
+        username: undefined,
       },
-      createdAt: new Date(Number(rawData[8]) * 1000),
-      isComplete: Boolean(rawData[6]),
-      currentChapter: Number(rawData[5]),
-      maxChapters: Number(rawData[4]),
+      createdAt: new Date(), // We don't have timestamp in the contract
+      isComplete: Boolean(rawData[6]), // completed is index 6
+      currentChapter: Number(rawData[3]), // currentChapterNumber is index 3
+      maxChapters: Number(rawData[2]), // totalChapters is index 2
       chapters: [], // We'll need to fetch these separately
-      tags: Array.isArray(rawData[9]) ? rawData[9].map(String) : [],
-      totalVotes: Number(rawData[7]),
+      tags: [], // Not stored in this contract
+      totalVotes: 0, // We'll calculate this separately
+      description: '', // Not stored in this contract
     };
   };
 
@@ -219,35 +219,13 @@ export function useGetStory(storyId: number | undefined) {
 }
 
 /**
- * Hook to get a specific chapter by ID
+ * Hook to get chapter content
  */
-export function useGetChapter(chapterId: number | undefined) {
+export function useGetChapterContent(storyId: number | undefined, chapterNumber: number | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi,
-    functionName: 'getChapter',
-    args: chapterId ? [BigInt(chapterId)] : undefined,
-    query: {
-      enabled: !!chapterId,
-    },
-  });
-
-  return {
-    chapter: data,
-    isLoading,
-    error,
-    refetch
-  };
-}
-
-/**
- * Hook to get submissions for a specific chapter
- */
-export function useGetChapterSubmissions(storyId: number | undefined, chapterNumber: number | undefined) {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi,
-    functionName: 'getChapterSubmissions',
+    functionName: 'getChapterContent',
     args: (storyId && chapterNumber) ? [BigInt(storyId), BigInt(chapterNumber)] : undefined,
     query: {
       enabled: !!(storyId && chapterNumber),
@@ -255,7 +233,7 @@ export function useGetChapterSubmissions(storyId: number | undefined, chapterNum
   });
 
   return {
-    submissionIds: data as bigint[] | undefined,
+    content: data as string | undefined,
     isLoading,
     error,
     refetch
@@ -263,16 +241,39 @@ export function useGetChapterSubmissions(storyId: number | undefined, chapterNum
 }
 
 /**
- * Hook to get a specific submission by ID
+ * Hook to get submissions count for a story
  */
-export function useGetSubmission(submissionId: number | undefined) {
+export function useGetSubmissionsCount(storyId: number | undefined) {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi,
+    functionName: 'getSubmissionsCount',
+    args: storyId ? [BigInt(storyId)] : undefined,
+    query: {
+      enabled: !!storyId,
+    },
+  });
+
+  return {
+    submissionsCount: data ? Number(data) : undefined,
+    isLoading,
+    error,
+    refetch
+  };
+}
+
+/**
+ * Hook to get a specific submission
+ */
+export function useGetSubmission(storyId: number | undefined, chapterNumber: number | undefined, submissionIndex: number | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi,
     functionName: 'getSubmission',
-    args: submissionId ? [BigInt(submissionId)] : undefined,
+    args: (storyId && chapterNumber !== undefined && submissionIndex !== undefined) ? 
+      [BigInt(storyId), BigInt(chapterNumber), BigInt(submissionIndex)] : undefined,
     query: {
-      enabled: !!submissionId,
+      enabled: !!(storyId && chapterNumber !== undefined && submissionIndex !== undefined),
     },
   });
 
@@ -281,18 +282,18 @@ export function useGetSubmission(submissionId: number | undefined) {
     if (!rawData || !Array.isArray(rawData)) return null;
     
     return {
-      id: String(rawData[0]),
-      storyId: String(rawData[1]),
-      chapterNumber: Number(rawData[2]),
-      content: String(rawData[3]),
+      id: `${storyId}-${chapterNumber}-${submissionIndex}`,
+      storyId: String(storyId),
+      chapterNumber: chapterNumber!,
+      content: String(rawData[1]), // content is index 1
       author: {
-        address: String(rawData[4]),
+        address: String(rawData[0]), // author is index 0
         username: undefined,
       },
       votes: [], // We'll need to track this separately
-      totalVotes: Number(rawData[5]),
-      createdAt: new Date(Number(rawData[6]) * 1000),
-      isWinner: Boolean(rawData[7]),
+      totalVotes: Number(rawData[2]), // votes is index 2
+      createdAt: new Date(), // Not available in contract
+      isWinner: false, // We'll determine this separately
     };
   };
 
@@ -305,105 +306,22 @@ export function useGetSubmission(submissionId: number | undefined) {
 }
 
 /**
- * Hook to get voting round for a story
+ * Hook to check if a user has voted
  */
-export function useGetVotingRound(storyId: number | undefined) {
+export function useHasUserVoted(storyId: number | undefined, chapterNumber: number | undefined, userAddress: string | undefined) {
   const { data, isLoading, error, refetch } = useReadContract({
     address: contractAddress as `0x${string}`,
     abi,
-    functionName: 'getVotingRound',
-    args: storyId ? [BigInt(storyId)] : undefined,
+    functionName: 's_hasVoted',
+    args: (storyId && chapterNumber !== undefined && userAddress) ? 
+      [BigInt(storyId), BigInt(chapterNumber), userAddress as `0x${string}`] : undefined,
     query: {
-      enabled: !!storyId,
-    },
-  });
-
-  return {
-    votingRound: data,
-    isLoading,
-    error,
-    refetch
-  };
-}
-
-/**
- * Hook to check if a user has voted for a submission
- */
-export function useHasUserVoted(submissionId: number | undefined, userAddress: string | undefined) {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi,
-    functionName: 'hasUserVoted',
-    args: (submissionId && userAddress) ? [BigInt(submissionId), userAddress as `0x${string}`] : undefined,
-    query: {
-      enabled: !!(submissionId && userAddress),
+      enabled: !!(storyId && chapterNumber !== undefined && userAddress),
     },
   });
 
   return {
     hasVoted: data as boolean | undefined,
-    isLoading,
-    error,
-    refetch
-  };
-}
-
-/**
- * Hook to get stories created by a user
- */
-export function useGetUserStories(userAddress: string | undefined) {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi,
-    functionName: 'getUserStories',
-    args: userAddress ? [userAddress as `0x${string}`] : undefined,
-    query: {
-      enabled: !!userAddress,
-    },
-  });
-
-  return {
-    userStoryIds: data as bigint[] | undefined,
-    isLoading,
-    error,
-    refetch
-  };
-}
-
-/**
- * Hook to get submissions made by a user
- */
-export function useGetUserSubmissions(userAddress: string | undefined) {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi,
-    functionName: 'getUserSubmissions',
-    args: userAddress ? [userAddress as `0x${string}`] : undefined,
-    query: {
-      enabled: !!userAddress,
-    },
-  });
-
-  return {
-    userSubmissionIds: data as bigint[] | undefined,
-    isLoading,
-    error,
-    refetch
-  };
-}
-
-/**
- * Hook to get total number of stories
- */
-export function useGetTotalStories() {
-  const { data, isLoading, error, refetch } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi,
-    functionName: 'getTotalStories',
-  });
-
-  return {
-    totalStories: data ? Number(data) : undefined,
     isLoading,
     error,
     refetch

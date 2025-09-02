@@ -19,8 +19,8 @@ import {
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useChainId, useSwitchChain } from "wagmi";
-import { baseSepolia } from "wagmi/chains";
+import { useChainId, useSwitchChain, useAccount, useDisconnect } from "wagmi";
+import { base } from "wagmi/chains";
 import { Button, Icon } from "./components/DemoComponents";
 import { StoryReader, ChapterWriter, VotingInterface } from "./components/StoryComponents";
 import { 
@@ -31,7 +31,88 @@ import {
   ChronicleCreateStory
 } from "./components/ChronicleComponents";
 import { Story, StorySubmission } from "../lib/types";
+import { useStoriesFromBlockchain } from "../lib/blockchain-story-manager";
+import { useGetStory } from "../lib/blockchain-utils";
 import { sdk } from '@farcaster/miniapp-sdk'
+
+// StoriesList component to display stories from blockchain
+function StoriesList({ onStorySelect }: { onStorySelect: (story: Story) => void }) {
+  const { storyCount, isLoadingStoryCount } = useStoriesFromBlockchain();
+
+  if (isLoadingStoryCount) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-[var(--app-foreground-muted)]">Loading stories...</div>
+      </div>
+    );
+  }
+
+  if (!storyCount || storyCount === 0) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-[var(--app-foreground-muted)] mb-4">
+          No stories have been created yet.
+        </div>
+        <p className="text-sm text-[var(--app-foreground-muted)]">
+          Be the first to start a collaborative story!
+        </p>
+      </div>
+    );
+  }
+
+  // Generate story IDs from 1 to storyCount
+  const storyIds = Array.from({ length: storyCount }, (_, i) => i + 1);
+
+  return (
+    <div className="space-y-3">
+      {storyIds.map((storyId) => (
+        <StoryCard key={storyId} storyId={storyId} onStorySelect={onStorySelect} />
+      ))}
+    </div>
+  );
+}
+
+// Individual story card component
+function StoryCard({ storyId, onStorySelect }: { storyId: number; onStorySelect: (story: Story) => void }) {
+  const { story, isLoading } = useGetStory(storyId);
+
+  if (isLoading) {
+    return (
+      <div className="bg-[var(--app-card-bg)] rounded-xl p-6 border border-[var(--app-card-border)]">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+          <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!story) {
+    return null;
+  }
+
+  const handleClick = () => {
+    onStorySelect(story);
+  };
+
+  return (
+    <ChronicleGameCard
+      title={story.title}
+      description={story.description || `Chapter ${story.currentChapter} of ${story.maxChapters}`}
+      participants={[
+        { 
+          id: story.creator.address, 
+          name: story.creator.username || `${story.creator.address.slice(0, 6)}...`, 
+          avatar: "" 
+        }
+      ]}
+      status={story.isComplete ? "Completed" : "Active"}
+      round={story.currentChapter}
+      maxRounds={story.maxChapters}
+      onClick={handleClick}
+    />
+  );
+}
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
@@ -41,10 +122,12 @@ export default function App() {
   const [joinCode, setJoinCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   
-  // Network management
+  // Wallet and network management
+  const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
-  const isOnBaseSepolia = chainId === baseSepolia.id;
+  const { disconnect } = useDisconnect();
+  const isOnBase = chainId === base.id;
 
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -99,10 +182,20 @@ export default function App() {
   
   const handleSwitchNetwork = async () => {
     try {
-      await switchChain({ chainId: baseSepolia.id });
+      await switchChain({ chainId: base.id });
     } catch (error) {
       console.error("Failed to switch network:", error);
     }
+  };
+
+  const handleLogout = async () => {
+
+      try {
+        disconnect();
+      } catch (error) {
+        console.error("Failed to disconnect wallet:", error);
+      }
+    
   };
 
   const saveFrameButton = useMemo(() => {
@@ -156,43 +249,53 @@ export default function App() {
                 src=""
                 alt="User"
                 size="lg"
-                fallback="U"
+                fallback={address ? address.slice(2, 4).toUpperCase() : "U"}
               />
               <div>
-                <Wallet className="z-10">
-                  <ConnectWallet>
+                {isConnected && address ? (
+                  // Show connected wallet info
+                  <div className="flex items-center space-x-2">
                     <span className="text-xl font-semibold text-[var(--app-foreground)]">
-                      <Name />
+                      {address.slice(0, 6)}...{address.slice(-4)}
                     </span>
-                  </ConnectWallet>
-                  <WalletDropdown className="bg-[var(--app-surface)] rounded-2xl shadow-xl border border-[var(--app-card-border)]">
-                    <Identity className="px-6 pt-4 pb-3" hasCopyAddressOnClick>
-                      <Avatar />
-                      <Name />
-                      <Address />
-                      <EthBalance />
-                    </Identity>
-                                      <WalletDropdownDisconnect className="mx-3 mb-3" />
-                  </WalletDropdown>
-                </Wallet>
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  </div>
+                ) : (
+                  // Show connect wallet button
+                  <Wallet className="z-10">
+                    <ConnectWallet>
+                      <span className="text-xl font-semibold text-[var(--app-foreground)]">
+                        Connect Wallet
+                      </span>
+                    </ConnectWallet>
+                    <WalletDropdown className="bg-[var(--app-surface)] rounded-2xl shadow-xl border border-[var(--app-card-border)]">
+                      <Identity className="px-6 pt-4 pb-3" hasCopyAddressOnClick>
+                        <Avatar />
+                        <Name />
+                        <Address />
+                        <EthBalance />
+                      </Identity>
+                      <WalletDropdownDisconnect className="mx-3 mb-3" />
+                    </WalletDropdown>
+                  </Wallet>
+                )}
               </div>
             </div>
 
             {/* Right side - Logout */}
             <div className="flex items-center space-x-3">
               {saveFrameButton}
-              <button
-                onClick={() => {
-                  if (confirm('Are you sure you want to logout?')) {
-                    // Handle logout
-                  }
-                }}
-                className="p-2 text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </button>
+              {isConnected && (
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors"
+                  title="Disconnect Wallet"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -200,8 +303,10 @@ export default function App() {
 
       {/* Main content */}
       <div className="max-w-4xl mx-auto px-5 py-8">
+
+
         {/* Network Warning Banner */}
-        {context?.user && !isOnBaseSepolia && (
+        {context?.user && !isOnBase && (
           <div className="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -210,7 +315,7 @@ export default function App() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-blue-800">Wrong Network</h4>
-                  <p className="text-sm text-blue-700">Switch to Base Sepolia</p>
+                  <p className="text-sm text-blue-700">Switch to Base Mainnet</p>
                 </div>
               </div>
               <ChronicleButton onClick={handleSwitchNetwork} variant="primary" size="sm">
@@ -272,100 +377,15 @@ export default function App() {
               </div>
             </div>
 
-            {/* Active Games - Exact Chronicle Layout */}
+                        {/* Active Games - Real Blockchain Data */}
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-[var(--app-foreground)]">
-                Active games
+                Active stories
               </h2>
               <div className="space-y-3">
-                <ChronicleGameCard
-                  title="The Mystery of the Lost Kingdom"
-                  description="A thrilling adventure through ancient lands filled with mystery and wonder..."
-                  participants={[
-                    { id: "1", name: "Alice", avatar: "" },
-                    { id: "2", name: "Bob", avatar: "" },
-                    { id: "3", name: "Charlie", avatar: "" },
-                  ]}
-                  status="Writing"
-                  round={2}
-                  maxRounds={5}
-                  onClick={() => {
-                                            setSelectedStory({
-                          id: "1",
-                          title: "The Mystery of the Lost Kingdom",
-                          description: "A thrilling adventure through ancient lands filled with mystery and wonder...",
-                          chapters: [],
-                          currentChapter: 2,
-                          maxChapters: 5,
-                          isComplete: false,
-                          createdAt: new Date(),
-                          creator: { address: "0x123", username: "Alice" },
-                          tags: [],
-                          totalVotes: 0
-                        });
-                    setActiveView("read");
-                  }}
-                />
-                <ChronicleGameCard
-                  title="Space Odyssey 2024"
-                  description="Journey through the cosmos in this sci-fi collaborative story..."
-                  participants={[
-                    { id: "4", name: "Dave", avatar: "" },
-                    { id: "5", name: "Eve", avatar: "" },
-                  ]}
-                  status="Voting"
-                  round={1}
-                  maxRounds={3}
-                  onClick={() => {
-                                            setSelectedStory({
-                          id: "2",
-                          title: "Space Odyssey 2024",
-                          description: "Journey through the cosmos in this sci-fi collaborative story...",
-                          chapters: [],
-                          currentChapter: 1,
-                          maxChapters: 3,
-                          isComplete: false,
-                          createdAt: new Date(),
-                          creator: { address: "0x456", username: "Dave" },
-                          tags: [],
-                          totalVotes: 0
-                        });
-                    setActiveView("read");
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Completed Games - Exact Chronicle Layout */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-[var(--app-foreground)]">
-                Completed games
-              </h2>
-              <div className="space-y-3">
-                <ChronicleGameCard
-                  title="The Dragon's Tale"
-                  description="An epic fantasy story that captivated readers with its magical world..."
-                  participants={[
-                    { id: "6", name: "Frank", avatar: "" },
-                    { id: "7", name: "Grace", avatar: "" },
-                    { id: "8", name: "Henry", avatar: "" },
-                    { id: "9", name: "Ivy", avatar: "" },
-                  ]}
-                  status="Completed"
-                  onClick={() => {
-                                            setSelectedStory({
-                          id: "3",
-                          title: "The Dragon's Tale",
-                          description: "An epic fantasy story that captivated readers with its magical world...",
-                          chapters: [],
-                          currentChapter: 5,
-                          maxChapters: 5,
-                          isComplete: true,
-                          createdAt: new Date(),
-                          creator: { address: "0x789", username: "Frank" },
-                          tags: [],
-                          totalVotes: 0
-                        });
+                <StoriesList 
+                  onStorySelect={(story) => {
+                    setSelectedStory(story);
                     setActiveView("read");
                   }}
                 />

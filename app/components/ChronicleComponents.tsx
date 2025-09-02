@@ -1,8 +1,11 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import Image from "next/image";
+import { useAccount } from "wagmi";
 import { Story } from "../../lib/types";
+import { useStoryOperations } from "../../lib/blockchain-story-manager";
+import { useWaitForTransaction } from "../../lib/blockchain-utils";
 
 // Chronicle-inspired Button Component
 type ChronicleButtonProps = {
@@ -414,36 +417,58 @@ export function ChronicleCreateStory({
   onStoryCreated,
   onCancel,
 }: ChronicleCreateStoryProps) {
+  const { address } = useAccount();
   const [title, setTitle] = useState("");
   const [rounds, setRounds] = useState(3);
-  const [roundDuration, setRoundDuration] = useState(3);
   const [votingDuration, setVotingDuration] = useState(2);
-  const [maxParticipants, setMaxParticipants] = useState(3);
-  const [isCreating, setIsCreating] = useState(false);
+  const [firstChapterContent, setFirstChapterContent] = useState("");
+  
+  const { 
+    createStory, 
+    isCreatingStory, 
+    createStoryError, 
+    createStoryHash 
+  } = useStoryOperations();
+
+  // Wait for transaction confirmation
+  const { receipt, isLoading: isWaitingConfirmation, isConfirmed } = useWaitForTransaction(createStoryHash);
 
   const handleCreate = async () => {
-    if (!title.trim()) return;
+    if (!address || !title.trim() || !firstChapterContent.trim()) return;
     
-    setIsCreating(true);
-    // Simulate story creation
-    setTimeout(() => {
+    try {
+      // Convert voting duration from minutes to seconds
+      const votingPeriodSeconds = votingDuration * 60;
+      
+      await createStory(title, rounds, votingPeriodSeconds, firstChapterContent);
+    } catch (error) {
+      console.error('Error creating story:', error);
+    }
+  };
+
+  // Handle transaction confirmation
+  useEffect(() => {
+    if (isConfirmed && createStoryHash && receipt) {
+      // Extract story ID from transaction receipt or use hash as temporary ID
+      const storyId = receipt.blockNumber?.toString() || createStoryHash;
+      
       const newStory: Story = {
-        id: Date.now().toString(),
+        id: storyId,
         title,
-        description: `A collaborative story with ${rounds} rounds`,
+        description: `A collaborative story with ${rounds} chapters`,
         chapters: [],
         currentChapter: 1,
         maxChapters: rounds,
         isComplete: false,
         createdAt: new Date(),
-        creator: { address: "0x000", username: "You" },
+        creator: { address: address! },
         tags: [],
         totalVotes: 0
       };
-      setIsCreating(false);
+      
       onStoryCreated(newStory);
-    }, 1000);
-  };
+    }
+  }, [isConfirmed, createStoryHash, receipt, title, rounds, address, onStoryCreated]);
 
 
 
@@ -471,8 +496,25 @@ export function ChronicleCreateStory({
           />
         </div>
 
+        <div>
+          <label className="block text-[var(--app-foreground)] font-medium mb-3">
+            First Chapter
+          </label>
+          <textarea
+            placeholder="Write the opening of your story... This will be the first chapter that sets the scene for other writers to continue."
+            value={firstChapterContent}
+            onChange={(e) => setFirstChapterContent(e.target.value)}
+            className="w-full px-4 py-3 bg-[var(--app-surface)] border border-[var(--app-card-border)] rounded-xl text-[var(--app-foreground)] placeholder-[var(--app-foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)] transition-all duration-300 resize-none"
+            rows={6}
+            maxLength={1000}
+          />
+          <div className="text-sm text-[var(--app-foreground-muted)] mt-2">
+            {firstChapterContent.length}/1000 characters
+          </div>
+        </div>
+
         <ChronicleNumberPicker
-          label="Rounds"
+          label="Total Chapters"
           value={rounds}
           min={3}
           max={10}
@@ -480,45 +522,38 @@ export function ChronicleCreateStory({
         />
 
         <ChronicleNumberPicker
-          label="Round duration (minutes)"
-          value={roundDuration}
-          min={3}
-          max={10}
-          onChange={setRoundDuration}
-        />
-
-        <ChronicleNumberPicker
           label="Voting duration (minutes)"
           value={votingDuration}
           min={2}
-          max={10}
+          max={60}
           onChange={setVotingDuration}
         />
 
-        <ChronicleNumberPicker
-          label="Maximum participants"
-          value={maxParticipants}
-          min={3}
-          max={10}
-          onChange={setMaxParticipants}
-        />
+        {createStoryError && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-red-800 text-sm">
+              Error creating story: {createStoryError.message}
+            </p>
+          </div>
+        )}
 
         <div className="flex gap-4 pt-4">
           <ChronicleButton
             onClick={onCancel}
             variant="ghost"
             fullWidth
+            disabled={isCreatingStory || isWaitingConfirmation}
           >
             Cancel
           </ChronicleButton>
           <ChronicleButton
             onClick={handleCreate}
             variant="secondary"
-            disabled={!title.trim() || isCreating}
+            disabled={!address || !title.trim() || !firstChapterContent.trim() || isCreatingStory || isWaitingConfirmation}
             fullWidth
-            icon={isCreating ? <ChronicleSpinner size="sm" /> : undefined}
+            icon={(isCreatingStory || isWaitingConfirmation) ? <ChronicleSpinner size="sm" /> : undefined}
           >
-            {isCreating ? "Creating..." : "Create"}
+            {isCreatingStory ? "Creating..." : isWaitingConfirmation ? "Confirming..." : "Create Story"}
           </ChronicleButton>
         </div>
       </ChronicleCard>

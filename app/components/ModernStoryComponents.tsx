@@ -335,9 +335,15 @@ export function StoryCreation({ onStoryCreated, onCancel }: StoryCreationProps) 
     try {
       // Generate a simple auto-title and let the first chapter define the story
       const autoTitle = `Untitled Story #${Date.now().toString().slice(-6)}`;
-      const autoDescription = "A collaborative story waiting to be told...";
+      const firstChapterContent = "This is the beginning of a collaborative story. Writers will continue this tale, building upon each other's creativity to create something unique and wonderful.";
       
-      await createStory(autoTitle, autoDescription, maxChapters, []);
+      // createStory expects: (title, totalChapters, votingPeriodSeconds, chapterOneContent)
+      await createStory(
+        autoTitle, 
+        maxChapters, 
+        300, // 5 minutes voting period
+        firstChapterContent
+      );
       
       // The transaction hash will be available in createStoryHash
       // We'll wait for confirmation before calling onStoryCreated

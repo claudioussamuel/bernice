@@ -1,12 +1,10 @@
 import { Story, StorySubmission, Vote } from './types';
 import { 
-  useGetAllStoryIds, 
-  useGetChapterSubmissions,
+  useGetStoryCount,
+  useGetSubmissionsCount,
   useCreateStory,
-  useSubmitFirstChapter,
-  useSubmitChapterContinuation,
-  useVoteForSubmission,
-  bigintArrayToNumbers,
+  useSubmitContinuation,
+  useVote,
   formatAddress 
 } from './blockchain-utils';
 
@@ -157,9 +155,8 @@ export class BlockchainStoryManager {
  */
 export function useStoryOperations() {
   const createStoryHook = useCreateStory();
-  const submitFirstChapterHook = useSubmitFirstChapter();
-  const submitContinuationHook = useSubmitChapterContinuation();
-  const voteHook = useVoteForSubmission();
+  const submitContinuationHook = useSubmitContinuation();
+  const voteHook = useVote();
 
   return {
     // Story creation
@@ -168,20 +165,14 @@ export function useStoryOperations() {
     createStoryError: createStoryHook.error,
     createStoryHash: createStoryHook.hash,
 
-    // First chapter submission
-    submitFirstChapter: submitFirstChapterHook.submitFirstChapter,
-    isSubmittingFirstChapter: submitFirstChapterHook.isPending,
-    submitFirstChapterError: submitFirstChapterHook.error,
-    submitFirstChapterHash: submitFirstChapterHook.hash,
-
-    // Chapter continuation
-    submitChapterContinuation: submitContinuationHook.submitChapterContinuation,
+    // Chapter submission
+    submitContinuation: submitContinuationHook.submitContinuation,
     isSubmittingContinuation: submitContinuationHook.isPending,
     submitContinuationError: submitContinuationHook.error,
     submitContinuationHash: submitContinuationHook.hash,
 
     // Voting
-    voteForSubmission: voteHook.voteForSubmission,
+    vote: voteHook.vote,
     isVoting: voteHook.isPending,
     voteError: voteHook.error,
     voteHash: voteHook.hash,
@@ -192,28 +183,23 @@ export function useStoryOperations() {
  * Hook to fetch and manage stories from blockchain
  */
 export function useStoriesFromBlockchain() {
-  const { storyIds, isLoading: loadingIds, refetch: refetchIds } = useGetAllStoryIds();
-  
-  // Convert bigint array to numbers for easier handling
-  const storyIdNumbers = bigintArrayToNumbers(storyIds);
+  const { storyCount, isLoading: loadingCount, refetch: refetchCount } = useGetStoryCount();
 
   return {
-    storyIds: storyIdNumbers,
-    isLoadingStoryIds: loadingIds,
-    refetchStoryIds: refetchIds,
+    storyCount,
+    isLoadingStoryCount: loadingCount,
+    refetchStoryCount: refetchCount,
   };
 }
 
 /**
- * Hook to get submissions for voting
+ * Hook to get submissions count for a story
  */
-export function useSubmissionsForVoting(storyId: number, chapterNumber: number) {
-  const { submissionIds, isLoading, refetch } = useGetChapterSubmissions(storyId, chapterNumber);
-  
-  const submissionIdNumbers = bigintArrayToNumbers(submissionIds);
+export function useSubmissionsForStory(storyId: number) {
+  const { submissionsCount, isLoading, refetch } = useGetSubmissionsCount(storyId);
 
   return {
-    submissionIds: submissionIdNumbers,
+    submissionsCount,
     isLoadingSubmissions: isLoading,
     refetchSubmissions: refetch,
   };

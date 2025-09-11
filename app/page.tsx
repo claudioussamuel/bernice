@@ -19,14 +19,11 @@ import {
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useChainId, useSwitchChain, useAccount, useDisconnect } from "wagmi";
-import { base } from "wagmi/chains";
 import { Button, Icon } from "./components/DemoComponents";
 import { StoryReader, ChapterWriter, VotingInterface } from "./components/StoryComponents";
 import { 
   ChronicleButton, 
   ChronicleInput, 
-  ChronicleAvatar, 
   ChronicleGameCard, 
   ChronicleCreateStory
 } from "./components/ChronicleComponents";
@@ -122,12 +119,8 @@ export default function App() {
   const [joinCode, setJoinCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   
-  // Wallet and network management
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const { switchChain } = useSwitchChain();
-  const { disconnect } = useDisconnect();
-  const isOnBase = chainId === base.id;
+  // MiniKit provides wallet connection through context
+  // No need for separate wallet state management
 
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -180,23 +173,6 @@ export default function App() {
     setActiveView("read");
   }, []);
   
-  const handleSwitchNetwork = async () => {
-    try {
-      await switchChain({ chainId: base.id });
-    } catch (error) {
-      console.error("Failed to switch network:", error);
-    }
-  };
-
-  const handleLogout = async () => {
-
-      try {
-        disconnect();
-      } catch (error) {
-        console.error("Failed to disconnect wallet:", error);
-      }
-    
-  };
 
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
@@ -245,57 +221,27 @@ export default function App() {
           <div className="flex items-center justify-between">
             {/* Left side - User info */}
             <div className="flex items-center space-x-3">
-              <ChronicleAvatar
-                src=""
-                alt="User"
-                size="lg"
-                fallback={address ? address.slice(2, 4).toUpperCase() : "U"}
-              />
-              <div>
-                {isConnected && address ? (
-                  // Show connected wallet info
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xl font-semibold text-[var(--app-foreground)]">
-                      {address.slice(0, 6)}...{address.slice(-4)}
-                    </span>
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  </div>
-                ) : (
-                  // Show connect wallet button
-                  <Wallet className="z-10">
-                    <ConnectWallet>
-                      <span className="text-xl font-semibold text-[var(--app-foreground)]">
-                        Connect Wallet
-                      </span>
-                    </ConnectWallet>
-                    <WalletDropdown className="bg-[var(--app-surface)] rounded-2xl shadow-xl border border-[var(--app-card-border)]">
-                      <Identity className="px-6 pt-4 pb-3" hasCopyAddressOnClick>
-                        <Avatar />
-                        <Name />
-                        <Address />
-                        <EthBalance />
-                      </Identity>
-                      <WalletDropdownDisconnect className="mx-3 mb-3" />
-                    </WalletDropdown>
-                  </Wallet>
-                )}
+              <div className="flex items-center space-x-2">
+                <Wallet className="z-10">
+                  <ConnectWallet>
+                    <Name className="text-inherit" />
+                  </ConnectWallet>
+                  <WalletDropdown>
+                    <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                      <Avatar />
+                      <Name />
+                      <Address />
+                      <EthBalance />
+                    </Identity>
+                    <WalletDropdownDisconnect />
+                  </WalletDropdown>
+                </Wallet>
               </div>
             </div>
 
-            {/* Right side - Logout */}
+            {/* Right side - Save Frame */}
             <div className="flex items-center space-x-3">
               {saveFrameButton}
-              {isConnected && (
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)] transition-colors"
-                  title="Disconnect Wallet"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -305,25 +251,6 @@ export default function App() {
       <div className="max-w-4xl mx-auto px-5 py-8">
 
 
-        {/* Network Warning Banner */}
-        {context?.user && !isOnBase && (
-          <div className="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-lg">🔄</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-800">Wrong Network</h4>
-                  <p className="text-sm text-blue-700">Switch to Base Mainnet</p>
-                </div>
-              </div>
-              <ChronicleButton onClick={handleSwitchNetwork} variant="primary" size="sm">
-                Switch
-              </ChronicleButton>
-            </div>
-          </div>
-        )}
 
         {/* Back button for other views */}
         {activeView !== "browse" && (
